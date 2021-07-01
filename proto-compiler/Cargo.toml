@@ -1,0 +1,16 @@
+[package]
+name = "proto-compiler"
+version = "0.1.0"
+authors = ["Rui Fu <freelz@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+walkdir         = { version = "2.3" }
+prost-build     = { version = "0.6" }
+git2            = { version = "0.13" }
+tempdir         = { version = "0.3" }
+subtle-encoding = { version = "0.5" }
+
+[workspace]
