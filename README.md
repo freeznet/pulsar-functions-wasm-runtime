@@ -5,7 +5,7 @@
 - [ ] wamser integration
 - [ ] pulsar-rs integration
 - [x] pulsar function proto
-    - [ ] pulsar function details
+    - [x] pulsar function details
     - [ ] pulsar function configs
 - [ ] WASI compatible function API
 - [ ] pulsar schema integration
