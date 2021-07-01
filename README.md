@@ -10,3 +10,5 @@
 - [ ] WASI compatible function API
 - [ ] pulsar schema integration
 - [ ] runtime runner image
+- [ ] example wasm function
+- [ ] wasm template toolkit
