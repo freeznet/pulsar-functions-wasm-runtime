@@ -8,8 +8,8 @@ edition = "2018"
 
 [dependencies]
 walkdir         = { version = "2.3" }
-prost-build     = { version = "0.6" }
-git2            = { version = "0.13" }
+prost-build     = { version = "0.10" }
+git2            = { version = "0.14.4" }
 tempdir         = { version = "0.3" }
 subtle-encoding = { version = "0.5" }
 
