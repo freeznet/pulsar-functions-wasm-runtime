@@ -1,3 +1,6 @@
 /target
 .idea
 target
+Cargo.lock
+**/*.rs.bk
+.DS_Store

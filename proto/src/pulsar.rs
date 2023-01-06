@@ -6,5 +6,5 @@ pub mod proto {
 
 pub mod meta {
     pub const REPOSITORY: &str = "https://github.com/apache/pulsar";
-    pub const COMMITISH: &str = "v2.9.2";
+    pub const COMMITISH: &str = "v2.10.2";
 }

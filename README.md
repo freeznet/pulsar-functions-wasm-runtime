@@ -2,8 +2,8 @@
 
 ## TODO
 
-- [ ] wamser integration
-- [ ] pulsar-rs integration
+- [x] wasmtime integration
+- [x] pulsar-rs integration
 - [x] pulsar function proto
     - [x] pulsar function details
     - [ ] pulsar function configs
@@ -13,3 +13,4 @@
 - [ ] runtime runner image
 - [ ] example wasm function
 - [ ] wasm template toolkit
+- [ ] wit bindings https://github.com/bytecodealliance/wit-bindgen
