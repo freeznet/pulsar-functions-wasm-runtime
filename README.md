@@ -14,3 +14,6 @@
 - [ ] example wasm function
 - [ ] wasm template toolkit
 - [ ] wit bindings https://github.com/bytecodealliance/wit-bindgen
+
+## References
+- https://github.com/pmalmgren/wasi-data-sharing
