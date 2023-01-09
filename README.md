@@ -8,7 +8,7 @@
     - [x] pulsar function details
     - [ ] pulsar function configs
 - [ ] WASI compatible function API
-- [ ] Exposing context functions [ref](https://docs.wasmer.io/integrations/examples/host-functions)
+- [ ] Exposing context functions
 - [ ] pulsar schema integration
 - [ ] runtime runner image
 - [ ] example wasm function
