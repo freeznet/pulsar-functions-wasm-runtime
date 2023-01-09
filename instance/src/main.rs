@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate serde;
+use std::borrow::Borrow;
 use std::env;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
@@ -15,9 +16,26 @@ use pulsar::{
     producer, consumer::ConsumerOptions, proto::Schema, reader::Reader, DeserializeMessage, Error as PulsarError, Pulsar, SerializeMessage,
     TokioExecutor,
 };
+use pfwasm_wit_bindings::context::context::*;
 
 struct HostStateContext {
     pub wasi: WasiCtx,
+    pub func_context: FunctionContext,
+}
+
+pub struct FunctionContext {
+    pub current_record: PulsarRecord,
+    pub output_message: Option<Vec<u8>>,
+}
+
+impl Context for FunctionContext {
+    fn get_current_message(&mut self) -> PulsarRecord {
+        self.current_record.clone()
+    }
+
+    fn set_output_message(&mut self, data: &[u8]) -> () {
+        self.output_message = Some(data.to_vec());
+    }
 }
 
 #[tokio::main]
@@ -36,6 +54,7 @@ async fn main() -> Result<()> {
     let mut builder = Pulsar::builder(addr, TokioExecutor);
 
     let pulsar: Pulsar<_> = builder.build().await?;
+    println!("connected to pulsar");
 
     let mut producer = pulsar
         .producer()
@@ -63,9 +82,11 @@ async fn main() -> Result<()> {
         .into_reader()
         .await?;
 
-    let mut counter = 0usize;
+
     let engine = Engine::default();
+    println!("engine created");
     let module = Module::from_file(&engine, "exclamation.wasm")?;
+    println!("module created, load exclamation.wasm");
     // listen to 5 messages
     while let Some(msg) = reader.try_next().await? {
         println!("metadata: {:#?}", msg.metadata());
@@ -78,74 +99,27 @@ async fn main() -> Result<()> {
             .inherit_stdout()
             .inherit_stderr()
             .build();
+
+        let func_context: FunctionContext = FunctionContext {
+            current_record: PulsarRecord {
+                value: msg.payload.data.clone(),
+                key: msg.key().unwrap_or_default(),
+            },
+            output_message: None,
+        };
         
         let ctx: HostStateContext = HostStateContext {
             wasi,
+            func_context,
         };
 
         let mut store = Store::new(&engine, ctx);
-        wasmtime_wasi::add_to_linker(&mut linker, |s| &mut s.wasi)?;
+        wasmtime_wasi::add_to_linker(&mut linker, |s: &mut HostStateContext | &mut s.wasi)?;
         println!("linked module");
-        let memory_ty = MemoryType::new(1, None);
-        Memory::new(&mut store, memory_ty).expect("memory");
 
-        let buf = msg.payload.data.clone();
-        let mem_size: i32 = buf.len() as i32;
-
-        linker
-            .func_wrap("host", "get_input_size", move || -> i32 { mem_size })
-            .expect("should define the function");
-
-        linker
-            .func_wrap(
-                "host",
-                "get_input",
-                move |mut caller: Caller<'_, HostStateContext>, ptr: i32| {
-                    let mem = match caller.get_export("memory") {
-                        Some(Extern::Memory(mem)) => mem,
-                        _ => return Err(anyhow::Error::msg("failed to find host memory")),
-                    };
-                    let offset = ptr as u32 as usize;
-                    match mem.write(&mut caller, offset, &buf) {
-                        Ok(_) => {}
-                        _ => return Err(anyhow::Error::msg("failed to write to host memory")),
-                    };
-                    Ok(())
-                },
-            )
-            .expect("should define the function");
-
-        let output: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
-
-        let output_ = output.clone();
-
-        linker
-            .func_wrap(
-                "host",
-                "set_output",
-                move |mut caller: Caller<'_, HostStateContext>, ptr: i32, capacity: i32| {
-                    let output = output_.clone();
-                    let mem = match caller.get_export("memory") {
-                        Some(Extern::Memory(mem)) => mem,
-                        _ => return Err(anyhow::Error::msg("failed to find host memory")),
-                    };
-                    let offset = ptr as u32 as usize;
-                    let mut buffer: Vec<u8> = vec![0; capacity as usize];
-                    match mem.read(&caller, offset, &mut buffer) {
-                        Ok(()) => {
-                            println!(
-                                "Buffer = {:?}, ptr = {}, capacity = {}",
-                                buffer, ptr, capacity
-                            );
-                            let mut output = output.lock().unwrap();
-                            *output = buffer;
-                            Ok(())
-                        }
-                        _ => Err(anyhow::Error::msg("failed to read host memory")),
-                    }
-                },
-            )
-            .expect("should define the function");
+        add_to_linker(&mut linker, |ctx: &mut HostStateContext| -> &mut FunctionContext {
+            &mut ctx.func_context
+        })?;
 
         linker
             .module(&mut store, "", &module)
@@ -153,22 +127,19 @@ async fn main() -> Result<()> {
         linker
             .get_default(&mut store, "")
             .expect("should get the wasi runtime")
-            .typed::<(), ()>(&store)
+            .typed::<(), (), _>(&store)
             .expect("should type the function")
             .call(&mut store, ())
             .expect("should call the function");
         
-        drop(store);
-
-        let output = output.lock();
+        let output = &store.data().func_context.output_message;
         println!("output: {:?}", output);
+        match output {
+            Some(v) => Some(producer.send(v.clone()).await?.await.unwrap()),
+            None => None,
+        };
 
-        if let Ok(data) = output {
-            match str::from_utf8(data.deref()) {
-                Ok(v) => producer.send(v).await?.await.unwrap(),
-                Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-            };
-        }
+        drop(store);
     }
 
     Ok(())

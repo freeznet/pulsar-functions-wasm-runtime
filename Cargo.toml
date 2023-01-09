@@ -3,8 +3,11 @@
 members = [
     "instance",
     "proto",
+    "wit-bindings/import",
+    "wit-bindings/export",
 ]
 
 exclude = [
-    "proto-compiler"
+    "proto-compiler",
+    "examples"
 ]

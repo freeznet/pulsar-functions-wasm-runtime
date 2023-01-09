@@ -12,12 +12,13 @@ pulsar-functions-proto = { path = "../proto" }
 futures = "0.3"
 pulsar = "5.0"
 tokio = { version = "1.0", features = ["full"] }
-wasmtime = "4.0.0"
+wasmtime = { version = "1.0" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0.56"
-wasmtime-wasi = "4.0.0"
-wasi-common = "4.0.0"
+wasmtime-wasi = "1.0"
+wasi-common = "1.0"
+pfwasm-wit-bindings = { path = "../wit-bindings/export" }
 
 [dev-dependencies]
 env_logger = "^0.9.1"

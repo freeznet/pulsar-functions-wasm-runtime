@@ -1,0 +1,7 @@
+record pulsar-record {
+  value: list<u8>,
+  key: string,
+}
+
+get-current-message: func() -> pulsar-record
+set-output-message: func(data: list<u8>)
